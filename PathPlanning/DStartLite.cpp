@@ -142,10 +142,17 @@ void DStartLite::Initialize(VertexPosition start, VertexPosition goal)
     U.Clear();
     km = 0;
     initial = true;
-
-    for (auto i : this->map)
+   
+    for (int i = 0; i < mapHeight; i++)
     {
-        i.second.g = i.second.rhs = INFINITY_CONST;
+        for (int j = 0; j < mapWidth; j++)
+        {
+            VertexPosition tmp;
+            tmp.x = j;
+            tmp.y = i;
+            map[tmp].g = INFINITY_CONST;
+            map[tmp].rhs = INFINITY_CONST;
+        }
     }
 
     this->start.position = start;

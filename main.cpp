@@ -30,19 +30,28 @@ bool notNear(player_point_2d_t current, player_point_2d_t dest)
 
 int main(int argc, char** argv)
 {
+    std::cout << "Conecting" << std::endl;
+    
     PlayerCc::PlayerClient r("localhost");
     PlayerCc::MapProxy m(&r, 0);
     PlayerCc::Position2dProxy p(&r, 2);
 
     r.Read();
 
+    std::cout << "Reading Map" << std::endl;
     m.RequestMap();
     int8_t* aMap = new int8_t[m.GetHeight() * m.GetWidth()];
     m.GetMap(aMap);
 
+    std::cout << "Map Resizing" << std::endl;
     MapResizer mR;
-    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 37, 10);
+    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 37, 20);
 
+    std::cout << "Mount DStartLite" << std::endl;
+    DStartLite pP;
+    pP.MountTheMap(mR.GetResizedMap(), mR.GetResizedWidth(), mR.GetResizedHeigth());
+
+    std::cout << "Init TaskPlanner" << std::endl;
     TaskPlanner tP(mR.GetResizedMap(), mR.GetResizedWidth(), mR.GetResizedHeigth());
 
     player_point_2d_t point;
@@ -51,6 +60,7 @@ int main(int argc, char** argv)
     point.py = p.GetYPos();
 
     tP.SetCurrentPosition(mR.RealToResized(point, -8, -8));
+
 
     Task t1;
     t1.id = 0;
@@ -66,6 +76,9 @@ int main(int argc, char** argv)
     t2.id = 1;
     point.px = 2;
     point.py = 2;
+    t2.locals.push_back(mR.RealToResized(point, -8, -8));
+    point.px = -6;
+    point.py = 7;
     t2.locals.push_back(mR.RealToResized(point, -8, -8));
     t2.priority = 5;
 
@@ -89,12 +102,9 @@ int main(int argc, char** argv)
 
         point.px = p.GetXPos();
         point.py = p.GetYPos();
-        DStartLite pP;
-        pP.MountTheMap(mR.GetResizedMap(), mR.GetResizedWidth(), mR.GetResizedHeigth());
         current = mR.RealToResized(point, -8, -8);
 
         pP.Initialize(current, next);
-
 
         VertexPosition tmp;
         std::vector<VertexUpdate> up;
@@ -102,7 +112,6 @@ int main(int argc, char** argv)
         {
             player_point_2d_t pointTmp;
             pointTmp = mR.ResizedToReal(tmp, -8, -8);
-            std::cout << pointTmp << std::endl;
             p.GoTo(pointTmp.px, pointTmp.py, 0);
 
             r.Read();
