@@ -112,6 +112,7 @@ void TaskPlanner::PopCurrentPlace()
 
 void TaskPlanner::SortTasks()
 {
+    failedTasks.clear();
     std::set<int> taskNotAdded;
     for (auto i : taskHash)
         taskNotAdded.insert(i.first);
@@ -135,11 +136,21 @@ void TaskPlanner::SortTasks()
             }
         }
 
-        last = taskHash[minId].locals.back();
-        taskQueue.push_back(std::make_pair(minCost, minId));
+        if (minCost != INFINITY_CONST)
+        {
+            last = taskHash[minId].locals.back();
+            taskQueue.push_back(std::make_pair(minCost, minId));
+        }
+        else
+        {
+            Task tmp;
+            tmp.id = minId;
+            tmp.locals = taskHash[minId].locals;
+            tmp.priority = taskHash[minId].priority;
+            tmp.cost = INFINITY_CONST;
+            failedTasks.push_back(tmp);
+        }
         taskNotAdded.erase(minId);
-
-
     }
 }
 
@@ -186,3 +197,7 @@ void TaskPlanner::ComputeDistance(int8_t* map, uint32_t mapWidth, uint32_t mapHe
     cost = d.TotalCost();
 }
 
+FailedTasks TaskPlanner::GetFailedTasks()
+{
+    return failedTasks;
+}

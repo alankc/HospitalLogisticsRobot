@@ -19,6 +19,8 @@
 #include "Auxiliar/MapResizer.h"
 #include "PathPlanning/DStartLite.h"
 #include "TasksPlanning/TaskPlanner.h"
+#include "DataBase/DaoGeneral.h"
+#include "DataBase/DaoTask.h"
 
 bool notNear(player_point_2d_t current, player_point_2d_t dest)
 {
@@ -30,8 +32,26 @@ bool notNear(player_point_2d_t current, player_point_2d_t dest)
 
 int main(int argc, char** argv)
 {
-    std::cout << "Conecting" << std::endl;
-    
+    DaoGeneral tst("tcp://127.0.0.1:3306", "robot_database", "root", "");
+    DaoTask dbT(&tst);
+
+    auto tasks = dbT.GetPendingTasks();
+    for (auto t : tasks)
+    {
+        std::cout << " Identifier: " << t.id << std::endl;
+        std::cout << "Description: " << t.description << std::endl;
+        std::cout << "   Priority: " << t.priority << std::endl;
+        std::cout << "     Places: " << t.locals.size() << " => ";
+        for (auto l : t.locals)
+        {
+            std::cout << "(" << l.x << ", " << l.y << ") ";
+        }
+
+        std::cout << std::endl << std::endl;
+    }
+
+    /*std::cout << "Conecting" << std::endl;
+
     PlayerCc::PlayerClient r("localhost");
     PlayerCc::MapProxy m(&r, 0);
     PlayerCc::Position2dProxy p(&r, 2);
@@ -45,7 +65,8 @@ int main(int argc, char** argv)
 
     std::cout << "Map Resizing" << std::endl;
     MapResizer mR;
-    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 37, 20);
+    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 37, 15);
+    mR.SetBegin(-16, -29);
 
     std::cout << "Mount DStartLite" << std::endl;
     DStartLite pP;
@@ -59,27 +80,26 @@ int main(int argc, char** argv)
     point.px = p.GetXPos();
     point.py = p.GetYPos();
 
-    tP.SetCurrentPosition(mR.RealToResized(point, -8, -8));
-
+    tP.SetCurrentPosition(mR.RealToResized(point));
 
     Task t1;
     t1.id = 0;
     point.px = 7;
-    point.py = -3;
-    t1.locals.push_back(mR.RealToResized(point, -8, -8));
-    point.px = 1.5;
-    point.py = -6.5;
-    t1.locals.push_back(mR.RealToResized(point, -8, -8));
+    point.py = -11;
+    t1.locals.push_back(mR.RealToResized(point));
+    point.px = -14;
+    point.py = 25;
+    t1.locals.push_back(mR.RealToResized(point));
     t1.priority = 1;
 
     Task t2;
     t2.id = 1;
-    point.px = 2;
-    point.py = 2;
-    t2.locals.push_back(mR.RealToResized(point, -8, -8));
-    point.px = -6;
-    point.py = 7;
-    t2.locals.push_back(mR.RealToResized(point, -8, -8));
+    point.px = -4;
+    point.py = -11;
+    t2.locals.push_back(mR.RealToResized(point));
+    point.px = -13.5;
+    point.py = -11;
+    t2.locals.push_back(mR.RealToResized(point));
     t2.priority = 5;
 
     tP.Add(t1);
@@ -96,13 +116,13 @@ int main(int argc, char** argv)
             std::cout << "Task: " << t.id << std::endl;
         }
 
-        std::cout << "Going to: " << mR.ResizedToReal(next, -8, -8) << std::endl;
+        std::cout << "Going to: " << mR.ResizedToReal(next) << std::endl;
 
         r.Read();
 
         point.px = p.GetXPos();
         point.py = p.GetYPos();
-        current = mR.RealToResized(point, -8, -8);
+        current = mR.RealToResized(point);
 
         pP.Initialize(current, next);
 
@@ -111,7 +131,7 @@ int main(int argc, char** argv)
         while (pP.GetNext(tmp, up))
         {
             player_point_2d_t pointTmp;
-            pointTmp = mR.ResizedToReal(tmp, -8, -8);
+            pointTmp = mR.ResizedToReal(tmp);
             p.GoTo(pointTmp.px, pointTmp.py, 0);
 
             r.Read();
@@ -126,8 +146,7 @@ int main(int argc, char** argv)
         }
 
         tP.PopCurrentPlace();
-    }
-
-    return 0;
+    }*/
+    return EXIT_SUCCESS;
 }
 

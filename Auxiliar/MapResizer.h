@@ -33,8 +33,9 @@ public:
     uint32_t GetResizedHeigth();
     uint32_t GetResizedPixPerMeter();
 
-    VertexPosition RealToResized(player_point_2d_t point, double beginX = 0, double beginY = 0);
-    player_point_2d_t ResizedToReal(VertexPosition vP, double beginX = 0, double beginY = 0);
+    VertexPosition RealToResized(player_point_2d_t point);
+    player_point_2d_t ResizedToReal(VertexPosition vP);
+    void SetBegin(double beginX, double beginY);
 
 private:
     int8_t* originalMap;
@@ -48,6 +49,9 @@ private:
     uint32_t resizedPixPerMeter;
 
     uint32_t factor;
+    
+    double beginX;
+    double beginY;
 };
 
 #endif /* MAPRESIZER_H */

@@ -10,7 +10,8 @@ struct Task
     std::vector<VertexPosition> locals;
     int priority;
     double cost;
-
+    std::string description;
+    
     Task() : id(-1), priority(-1), cost(-1)
     {
     }

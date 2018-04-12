@@ -8,25 +8,27 @@
 
 typedef std::unordered_map<int, TaskData> TaskHash;
 typedef std::vector<std::pair<double, int>> TaskQueue;
-//typedef std::multimap<double, int, std::less<double>> TaskQueue;
+typedef std::vector<Task> FailedTasks;
 
 class TaskPlanner
 {
 public:
-     
+
     TaskPlanner(int8_t* map, uint32_t mapWidth, uint32_t mapHeight);
     virtual ~TaskPlanner();
-    
+
     void SetCurrentPosition(VertexPosition currentPosition);
-    
+
     void Add(Task t);
     void Remove(int id);
     Task Pop();
-    
+
     bool GetCurrentTask(Task& t);
     bool GetCurrentPlace(VertexPosition& vP);
     void PopCurrentPlace();
     bool TaskHasChanged();
+    
+    FailedTasks GetFailedTasks();
 
 private:
     int8_t* map;
@@ -35,8 +37,9 @@ private:
 
     TaskHash taskHash;
     TaskQueue taskQueue;
+    FailedTasks failedTasks;
     bool taskHashHasChanged;
-    
+
     Task currentTask;
     VertexPosition currentPosition;
     bool positionChanged;

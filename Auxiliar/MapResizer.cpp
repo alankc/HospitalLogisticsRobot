@@ -98,7 +98,13 @@ uint32_t MapResizer::GetResizedPixPerMeter()
     return resizedPixPerMeter;
 }
 
-VertexPosition MapResizer::RealToResized(player_point_2d_t point, double beginX, double beginY)
+void MapResizer::SetBegin(double beginX, double beginY)
+{
+    this->beginX = beginX;
+    this->beginY = beginY;
+}
+
+VertexPosition MapResizer::RealToResized(player_point_2d_t point)
 {
     VertexPosition ret;
     ret.x = (((double) point.px - beginX)* (double) originalPixPerMeter) / (double) factor;
@@ -106,7 +112,7 @@ VertexPosition MapResizer::RealToResized(player_point_2d_t point, double beginX,
     return ret;
 }
 
-player_point_2d_t MapResizer::ResizedToReal(VertexPosition vP, double beginX, double beginY)
+player_point_2d_t MapResizer::ResizedToReal(VertexPosition vP)
 {
     player_point_2d_t ret;
     ret.px = ((double) vP.x + 0.5) * (double) factor / (double) originalPixPerMeter + beginX;
