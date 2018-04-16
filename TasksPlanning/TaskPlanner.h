@@ -3,7 +3,7 @@
 
 #include <queue>
 #include <map>
-
+#include <mutex>
 #include "TaskPlanningDefines.h"
 
 typedef std::unordered_map<int, TaskData> TaskHash;
@@ -24,7 +24,7 @@ public:
     Task Pop();
 
     bool GetCurrentTask(Task& t);
-    bool GetCurrentPlace(VertexPosition& vP);
+    bool GetCurrentPlace(TaskPlace& p);
     void PopCurrentPlace();
     bool TaskHasChanged();
     
@@ -39,6 +39,7 @@ private:
     TaskQueue taskQueue;
     FailedTasks failedTasks;
     bool taskHashHasChanged;
+    std::mutex mtx; 
 
     Task currentTask;
     VertexPosition currentPosition;
@@ -46,7 +47,7 @@ private:
 
     void SortTasks();
     void ComputeTotalCost(TaskData& t, VertexPosition initialPosition);
-    void static ComputeDistance(int8_t* map, uint32_t mapWidth, uint32_t mapHeight, VertexPosition start, VertexPosition goal, double& cost);
+    void ComputeDistance(int8_t* map, uint32_t mapWidth, uint32_t mapHeight, VertexPosition start, VertexPosition goal, double& cost);
 };
 
 #endif /* TASKPLANNER_H */

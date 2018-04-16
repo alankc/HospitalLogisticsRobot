@@ -14,7 +14,7 @@
 #include "DaoTask.h"
 #include <sstream>
 
-DaoTask::DaoTask(DaoGeneral* daoGeneral) : daoGenaral(daoGeneral)
+DaoTask::DaoTask(DaoGeneral* daoGeneral, uint32_t idMap) : daoGenaral(daoGeneral), idMap(idMap)
 {
 }
 
@@ -22,7 +22,13 @@ DaoTask::~DaoTask()
 {
 }
 
-bool DaoTask::UpdateStatus(uint32_t idTask, std::string status)
+const std::string DaoTask::REMOVE = "R";
+const std::string DaoTask::WAITING = "W";
+const std::string DaoTask::OPENNED = "O";
+const std::string DaoTask::PERFORMING = "P";
+const std::string DaoTask::DONE = "D";
+
+bool DaoTask::UpdateStatus(int idTask, std::string status)
 {
     std::stringstream statement;
     statement << "UPDATE TASK\n";
@@ -35,7 +41,7 @@ bool DaoTask::UpdateStatus(uint32_t idTask, std::string status)
     return false;
 }
 
-bool DaoTask::UpdateStatusPlace(uint32_t idTask, uint32_t seqNumber, std::string status)
+bool DaoTask::UpdateStatusPlace(int idTask, uint32_t seqNumber, std::string status)
 {
     std::stringstream statement;
     statement << "UPDATE TASK_PLACE\n";
@@ -48,7 +54,7 @@ bool DaoTask::UpdateStatusPlace(uint32_t idTask, uint32_t seqNumber, std::string
     return false;
 }
 
-bool DaoTask::Delete(uint32_t idTask)
+bool DaoTask::Delete(int idTask)
 {
     std::stringstream statement;
     statement << "DELETE FROM TASK\n";
@@ -66,7 +72,7 @@ std::vector<Task> DaoTask::GetPendingTasks()
 
     std::stringstream statement;
     statement << "SELECT ID_TASK, DESCRIPTION, PRIORITY FROM TASK\n";
-    statement << "WHERE STATUS = '" << "A" << "';";
+    statement << "WHERE STATUS = '" << WAITING << "';";
 
     sql::ResultSet* res = daoGenaral->ExecuteQuery(statement.str());
 
@@ -86,12 +92,24 @@ std::vector<Task> DaoTask::GetPendingTasks()
     else
         return tasks;
 
+    int factor = 1;
+    statement.str("");
+    statement << "SELECT O_PIX_PER_METER, R_PIX_PER_METER FROM MAP\n";
+    statement << "WHERE ID_MAP = " << idMap << ";";
+    res = daoGenaral->ExecuteQuery(statement.str());
+    if (res != NULL)
+    {
+        res->next();
+        factor = res->getUInt("O_PIX_PER_METER") / res->getUInt("R_PIX_PER_METER");
+        delete res;
+    }
+
     for (int i = 0; i < tasks.size(); i++)
     {
         statement.str("");
-        statement << "SELECT P.X, P.Y FROM PLACE AS P\n";
+        statement << "SELECT TP.SEQ_NUMBER, P.DESC, P.X, P.Y FROM PLACE AS P\n";
         statement << "INNER JOIN TASK_PLACE AS TP ON P.ID_PLACE = TP.ID_PLACE\n";
-        statement << "WHERE ((TP.ID_TASK = " << tasks[i].id << ") AND (TP.STATUS = '" << "A" << "'))\n";
+        statement << "WHERE ((TP.ID_TASK = " << tasks[i].id << ") AND (TP.STATUS = '" << WAITING << "'))\n";
         statement << "ORDER BY TP.SEQ_NUMBER ASC;";
 
         res = daoGenaral->ExecuteQuery(statement.str());
@@ -100,10 +118,14 @@ std::vector<Task> DaoTask::GetPendingTasks()
         {
             while (res->next())
             {
-                VertexPosition tmp;
-                tmp.x = res->getUInt("X");
-                tmp.y = res->getUInt("Y");
-                tasks[i].locals.push_back(tmp);
+                TaskPlace tmp;
+                
+                tmp.position.x = res->getUInt("X") / factor;
+                tmp.position.y = res->getUInt("Y") / factor;
+                tmp.description = res->getString("DESC");
+                tmp.seqNumber = res->getUInt("SEQ_NUMBER");
+      
+                tasks[i].places.push_back(tmp);
             }
 
             delete res;
@@ -111,4 +133,26 @@ std::vector<Task> DaoTask::GetPendingTasks()
     }
 
     return tasks;
+}
+
+std::vector<int> DaoTask::GetRemovedTasks()
+{
+    std::vector<int> tasks;
+
+    std::stringstream statement;
+    statement << "SELECT ID_TASK FROM TASK\n";
+    statement << "WHERE STATUS = '" << REMOVE << "';";
+
+    sql::ResultSet* res = daoGenaral->ExecuteQuery(statement.str());
+
+    if (res != NULL)
+    {
+        while (res->next())
+        {
+            tasks.push_back(res->getInt("ID_TASK"));
+        }
+        delete res;
+    }
+    else
+        return tasks;
 }

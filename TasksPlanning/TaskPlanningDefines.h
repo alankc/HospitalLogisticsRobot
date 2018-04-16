@@ -4,10 +4,17 @@
 #include "../PathPlanning/PathPlanningDefines.h"
 #include <vector>
 
+struct TaskPlace
+{  
+    uint32_t seqNumber;
+    std::string description;
+    VertexPosition position;
+};
+
 struct Task
 {
     int id;
-    std::vector<VertexPosition> locals;
+    std::vector<TaskPlace> places;
     int priority;
     double cost;
     std::string description;
@@ -24,12 +31,14 @@ struct Task
 
 struct TaskData
 {
-    std::vector<VertexPosition> locals;
+    std::vector<TaskPlace> places;
     std::vector<double> costs;
 
     int priority;
     double cost;
 
+    std::string description;
+    
     TaskData() : priority(-1), cost(-1)
     {
     }

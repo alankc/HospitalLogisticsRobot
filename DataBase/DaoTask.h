@@ -20,18 +20,26 @@
 class DaoTask
 {
 public:
-    DaoTask(DaoGeneral* daoGeneral);
+    DaoTask(DaoGeneral* daoGeneral, uint32_t idMap);
     DaoTask(const DaoTask& orig);
-       
-    bool UpdateStatus(uint32_t idTask, std::string status);
-    bool UpdateStatusPlace(uint32_t idTask, uint32_t seqNumber, std::string status);   
-    bool Delete(uint32_t idTask);
-    
+
+    bool UpdateStatus(int idTask, std::string status);
+    bool UpdateStatusPlace(int idTask, uint32_t seqNumber, std::string status);
+    bool Delete(int idTask);
+
     std::vector<Task> GetPendingTasks();
-    
+    std::vector<int> GetRemovedTasks();
     virtual ~DaoTask();
+
+    static const std::string REMOVE;
+    static const std::string WAITING;
+    static const std::string OPENNED;
+    static const std::string PERFORMING;
+    static const std::string DONE;
+
 private:
     DaoGeneral* daoGenaral;
+    uint32_t idMap;
 };
 
 #endif /* DAOTASK_H */
