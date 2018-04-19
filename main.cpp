@@ -68,7 +68,7 @@ void VerifyRemove(DaoTask& daoTask, TaskPlanner& taskPlanner)
 int main(int argc, char** argv)
 {
     DaoGeneral tst("tcp://127.0.0.1:3306", "robot_database", "root", "");
-    DaoTask dbT(&tst, 0);
+    DaoTask dbT(&tst, 1);
 
     std::cout << "Conecting ro robot" << std::endl;
     PlayerCc::PlayerClient r("localhost");
@@ -106,9 +106,11 @@ int main(int argc, char** argv)
     VertexPosition current;
     VertexPosition next;
     TaskPlace place;
+    uint32_t count = 0;
     while (true)
     {
         r.Read();
+        std::cout << "loop " << count++ << std::endl;
         Task t;
         while (tP.GetCurrentPlace(place))
         {
@@ -118,10 +120,15 @@ int main(int argc, char** argv)
                 //When exists more than one task into the list
                 if (t.id != -1)
                     dbT.UpdateStatus(t.id, DaoTask::DONE);
-                tP.GetCurrentTask(t);
-                dbT.UpdateStatus(t.id, DaoTask::PERFORMING);
-                std::cout << "Task : " << t.id << std::endl;
-                std::cout << "Desc.: " << t.description << std::endl;
+
+                if (tP.GetCurrentTask(t))
+                {
+                    dbT.UpdateStatus(t.id, DaoTask::PERFORMING);
+                    std::cout << "Task : " << t.id << std::endl;
+                    std::cout << "Desc.: " << t.description << std::endl;
+                }
+                else
+                    break;
             }
 
             std::cout << "Going to: " << place.description << std::endl;

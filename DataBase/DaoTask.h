@@ -22,11 +22,15 @@ class DaoTask
 public:
     DaoTask(DaoGeneral* daoGeneral, uint32_t idMap);
     DaoTask(const DaoTask& orig);
+    
+    void SetIdMap(uint32_t idMap);
 
+    bool InsertTask(std::string description, int priority, std::vector<uint32_t> places);
     bool UpdateStatus(int idTask, std::string status);
     bool UpdateStatusPlace(int idTask, uint32_t seqNumber, std::string status);
     bool Delete(int idTask);
 
+    std::vector<Task> GetTasksByStatus(std::string status);
     std::vector<Task> GetPendingTasks();
     std::vector<int> GetRemovedTasks();
     virtual ~DaoTask();

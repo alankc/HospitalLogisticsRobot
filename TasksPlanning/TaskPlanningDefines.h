@@ -39,7 +39,9 @@ struct TaskData
 
     std::string description;
     
-    TaskData() : priority(-1), cost(-1)
+    bool toRemove;
+    
+    TaskData() : priority(-1), cost(-1), toRemove(false)
     {
     }
 };

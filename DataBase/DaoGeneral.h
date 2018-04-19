@@ -29,6 +29,7 @@ public:
     
     sql::ResultSet* ExecuteQuery(std::string statement);
     bool ExecuteUpdate(std::string statement);
+    bool ExecuteUpdate(std::vector<std::string> statements);
 private:
     std::string host;
     std::string schema;

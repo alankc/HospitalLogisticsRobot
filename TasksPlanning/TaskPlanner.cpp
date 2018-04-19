@@ -48,7 +48,7 @@ void TaskPlanner::Remove(int id)
         auto it = taskHash.find(id);
         if (it != taskHash.end())
         {
-            taskHash.erase(it);
+            taskHash[it->first].toRemove = true;
             taskHashHasChanged = true;
         }
     }
@@ -96,6 +96,7 @@ bool TaskPlanner::GetCurrentPlace(TaskPlace & p)
     mtx.lock();
     if (taskHash.size() == 0)
     {
+        taskQueue.clear();
         mtx.unlock();
         return false;
     }
@@ -109,7 +110,7 @@ bool TaskPlanner::GetCurrentPlace(TaskPlace & p)
 
     TaskData* tD = &taskHash[taskQueue.begin()->second];
     p = tD->places.front();
-    
+
     mtx.unlock();
     return true;
 }
@@ -119,7 +120,25 @@ void TaskPlanner::PopCurrentPlace()
     mtx.lock();
     if (taskHash.size() > 0)
     {
-        TaskData* tD = &taskHash[taskQueue.begin()->second];
+        auto it = taskHash.find(taskQueue.begin()->second);
+        if (it != taskHash.end())
+        {
+            TaskData* tD = &taskHash[it->first];
+            currentPosition = tD->places.front().position;
+            tD->places.erase(tD->places.begin());
+
+            if ((tD->places.size() == 0) || (tD->toRemove))
+            {
+                taskHash.erase(taskQueue.begin()->second);
+                taskQueue.erase(taskQueue.begin());
+            }
+
+            if (taskHash.size() == 0)
+            {
+                currentTask = Task();
+            }
+        }
+        /*TaskData* tD = &taskHash[taskQueue.begin()->second];
         currentPosition = tD->places.front().position;
         tD->places.erase(tD->places.begin());
 
@@ -132,7 +151,7 @@ void TaskPlanner::PopCurrentPlace()
         if (taskHash.size() == 0)
         {
             currentTask = Task();
-        }
+        }*/
     }
     mtx.unlock();
 }
@@ -141,8 +160,25 @@ void TaskPlanner::SortTasks()
 {
     failedTasks.clear();
     std::set<int> taskNotAdded;
+    std::set<int> toRemove;
     for (auto i : taskHash)
-        taskNotAdded.insert(i.first);
+    {
+        if (i.second.toRemove)
+        {
+            toRemove.insert(i.first);
+        }
+        else
+        {
+            taskNotAdded.insert(i.first);
+        }
+    }
+
+    for (auto i : toRemove)
+    {
+        auto it = taskHash.find(i);
+        if (it != taskHash.end())
+            taskHash.erase(it);
+    }
 
     VertexPosition last = currentPosition;
 
