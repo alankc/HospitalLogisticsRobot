@@ -158,6 +158,9 @@ void TaskPlanner::PopCurrentPlace()
 
 void TaskPlanner::SortTasks()
 {
+#ifdef STATISTICS 
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+#endif
     failedTasks.clear();
     std::set<int> taskNotAdded;
     std::set<int> toRemove;
@@ -215,6 +218,11 @@ void TaskPlanner::SortTasks()
         }
         taskNotAdded.erase(minId);
     }
+#ifdef STATISTICS 
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "\n\nTime (Milliseconds)= " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+    std::cout << "Time (Microseconds)= " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "\n" << std::endl;
+#endif
 }
 
 void TaskPlanner::ComputeTotalCost(TaskData& t, VertexPosition initialPosition)

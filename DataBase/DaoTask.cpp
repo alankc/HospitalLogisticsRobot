@@ -253,6 +253,6 @@ std::vector<int> DaoTask::GetRemovedTasks()
         }
         delete res;
     }
-    else
-        return tasks;
+
+    return tasks;
 }

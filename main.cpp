@@ -23,10 +23,13 @@
 #include "DataBase/DaoTask.h"
 
 #include <thread>
+#include <mutex>
 
-bool notNear(player_point_2d_t current, player_point_2d_t dest)
+std::mutex mtx;
+
+bool notNear(player_point_2d_t current, player_point_2d_t dest, double dist = 1.00)
 {
-    if (std::abs(current.px - dest.px) > 1 || std::abs(current.py - dest.py) > 1)
+    if (std::sqrt(std::pow(current.px - dest.px, 2) + std::pow(current.py - dest.py, 2)) > dist)
         return true;
 
     return false;
@@ -34,6 +37,7 @@ bool notNear(player_point_2d_t current, player_point_2d_t dest)
 
 void VerifyAdd(DaoTask& daoTask, TaskPlanner& taskPlanner)
 {
+    static bool first = true;
     while (true)
     {
         auto tasks = daoTask.GetPendingTasks();
@@ -46,6 +50,11 @@ void VerifyAdd(DaoTask& daoTask, TaskPlanner& taskPlanner)
                 daoTask.UpdateStatusPlace(t.id, i++, DaoTask::OPENNED);
             }
             taskPlanner.Add(t);
+        }
+        if (first)
+        {
+            mtx.unlock();
+            first = false;
         }
         sleep(10);
     }
@@ -70,10 +79,13 @@ int main(int argc, char** argv)
     DaoGeneral tst("tcp://127.0.0.1:3306", "robot_database", "root", "");
     DaoTask dbT(&tst, 1);
 
-    std::cout << "Conecting ro robot" << std::endl;
+    std::cout << "Connecting to robot" << std::endl;
     PlayerCc::PlayerClient r("localhost");
     PlayerCc::MapProxy m(&r, 0);
-    PlayerCc::Position2dProxy p(&r, 2);
+    PlayerCc::Position2dProxy pControl(&r, 2);
+    PlayerCc::Position2dProxy pAMCL(&r, 1);
+    PlayerCc::Position2dProxy pSimulation(&r, 0);
+
     r.Read();
 
     std::cout << "Reading Map" << std::endl;
@@ -83,8 +95,8 @@ int main(int argc, char** argv)
 
     std::cout << "Map Resizing" << std::endl;
     MapResizer mR;
-    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 37, 15);
-    mR.SetBegin(-16, -29);
+    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 35, 15);
+    mR.SetBegin(-16.66, -30.52);
 
     std::cout << "Mount DStartLite" << std::endl;
     DStartLite pP;
@@ -95,12 +107,15 @@ int main(int argc, char** argv)
 
     player_point_2d_t point;
 
-    point.px = p.GetXPos();
-    point.py = p.GetYPos();
+    point.px = pControl.GetXPos();
+    point.py = pControl.GetYPos();
 
     tP.SetCurrentPosition(mR.RealToResized(point));
 
+    sleep(10);
+    
     std::thread t_add(VerifyAdd, std::ref(dbT), std::ref(tP));
+    mtx.lock();
     std::thread t_remove(VerifyRemove, std::ref(dbT), std::ref(tP));
 
     VertexPosition current;
@@ -124,8 +139,9 @@ int main(int argc, char** argv)
                 if (tP.GetCurrentTask(t))
                 {
                     dbT.UpdateStatus(t.id, DaoTask::PERFORMING);
-                    std::cout << "Task : " << t.id << std::endl;
-                    std::cout << "Desc.: " << t.description << std::endl;
+                    std::cout << "Task        : " << t.id << std::endl;
+                    std::cout << "Priority    : " << t.priority << std::endl;
+                    std::cout << "Description : " << t.description << std::endl;
                 }
                 else
                     break;
@@ -136,31 +152,61 @@ int main(int argc, char** argv)
 
             r.Read();
 
-            point.px = p.GetXPos();
-            point.py = p.GetYPos();
+            point.px = pControl.GetXPos();
+            point.py = pControl.GetYPos();
             current = mR.RealToResized(point);
 
             pP.Initialize(current, next);
 
-            VertexPosition tmp;
+            //Nova versão
+            VertexPosition tmpCurr, tmpPrev;
+            tmpCurr.x = tmpCurr.y = 0;
+            tmpPrev = tmpCurr;
             std::vector<VertexUpdate> up;
-            while (pP.GetNext(tmp, up))
+            while (pP.GetNext(tmpCurr, up))
             {
-                player_point_2d_t pointTmp;
-                pointTmp = mR.ResizedToReal(tmp);
-                p.GoTo(pointTmp.px, pointTmp.py, 0);
+                player_point_2d_t pointTmpCurr, pointTmpPrev;
+                pointTmpCurr = mR.ResizedToReal(tmpCurr);
+                pointTmpPrev = mR.ResizedToReal(tmpPrev);
+
+                if (!notNear(pointTmpCurr, pointTmpPrev, 0.25)) continue;
+
+                tmpPrev = tmpCurr;
+
+                pControl.GoTo(pointTmpCurr.px, pointTmpCurr.py, 0);
 
                 r.Read();
-                point.px = p.GetXPos();
-                point.py = p.GetYPos();
-                while (notNear(point, pointTmp))
+                point.px = pControl.GetXPos();
+                point.py = pControl.GetYPos();
+                while (notNear(point, pointTmpCurr))
                 {
                     r.Read();
-                    point.px = p.GetXPos();
-                    point.py = p.GetYPos();
+                    point.px = pControl.GetXPos();
+                    point.py = pControl.GetYPos();
                 }
             }
+            //Fim nova versão
 
+            //Versão Original
+            /*            VertexPosition tmp;
+                        std::vector<VertexUpdate> up;
+                        while (pP.GetNext(tmp, up))
+                        {
+                            player_point_2d_t pointTmp;
+                            pointTmp = mR.ResizedToReal(tmp);
+                            p.GoTo(pointTmp.px, pointTmp.py, 0);
+
+                            r.Read();
+                            point.px = p.GetXPos();
+                            point.py = p.GetYPos();
+                            while (notNear(point, pointTmp))
+                            {
+                                r.Read();
+                                point.px = p.GetXPos();
+                                point.py = p.GetYPos();
+                            }
+                        }
+             */
             tP.PopCurrentPlace();
             dbT.UpdateStatusPlace(t.id, place.seqNumber, DaoTask::DONE);
 
