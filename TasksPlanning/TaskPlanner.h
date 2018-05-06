@@ -29,7 +29,7 @@ public:
     bool TaskHasChanged();
     
     FailedTasks GetFailedTasks();
-
+    void ClearFailedTAsks();
 private:
     int8_t* map;
     uint32_t mapWidth;

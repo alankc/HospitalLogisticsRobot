@@ -108,6 +108,13 @@ bool TaskPlanner::GetCurrentPlace(TaskPlace & p)
         positionChanged = false;
     }
 
+    if (taskHash.size() == 0)
+    {
+        taskQueue.clear();
+        mtx.unlock();
+        return false;
+    }
+
     TaskData* tD = &taskHash[taskQueue.begin()->second];
     p = tD->places.front();
 
@@ -190,12 +197,17 @@ void TaskPlanner::SortTasks()
     {
         double minCost = INFINITY_CONST;
         int minId;
-
+#ifdef STATISTICS 
+        std::cout << "-------" << std::endl;
+#endif
         for (auto i : taskNotAdded)
         {
             TaskData& t = taskHash[i];
             ComputeTotalCost(t, last);
-            if (t.cost < minCost)
+#ifdef STATISTICS 
+            std::cout << i << "\t" << t.priority << "\t" << t.cost * t.priority << "\t" << t.cost << std::endl;
+#endif
+            if (t.cost <= minCost)
             {
                 minCost = t.cost;
                 minId = i;
@@ -251,13 +263,12 @@ void TaskPlanner::ComputeTotalCost(TaskData& t, VertexPosition initialPosition)
     {
         while (t.costs.size() > t.places.size()) //When the position was reached
             t.costs.erase(t.costs.begin());
-        ComputeDistance(map, mapWidth, mapHeight, initialPosition, t.places.at(0).position, std::ref(t.costs.at(0)));
+        ComputeDistance(map, mapWidth, mapHeight, initialPosition, t.places[0].position, std::ref(t.costs[0]));
     }
 
     t.cost = 0;
-    for (auto i : t.costs)
-        t.cost += i / (double) t.priority;
-
+    for (int i = 0; i < t.costs.size(); i++)
+        t.cost += t.costs[i] / (double) t.priority;
 }
 
 void TaskPlanner::ComputeDistance(int8_t* map, uint32_t mapWidth, uint32_t mapHeight, VertexPosition start, VertexPosition goal, double& cost)
@@ -266,9 +277,17 @@ void TaskPlanner::ComputeDistance(int8_t* map, uint32_t mapWidth, uint32_t mapHe
     d.MountTheMap(map, mapWidth, mapHeight);
     d.Initialize(start, goal);
     cost = d.TotalCost();
+//    std::cout << "Start: (" << start.x << ", " << start.y << ")" << std::endl;
+//    std::cout << "Goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+//    std::cout << "Cost: " << cost << std::endl;
 }
 
 FailedTasks TaskPlanner::GetFailedTasks()
 {
     return failedTasks;
+}
+
+void TaskPlanner::ClearFailedTAsks()
+{
+    failedTasks.clear();
 }

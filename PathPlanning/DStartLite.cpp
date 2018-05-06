@@ -108,7 +108,7 @@ double DStartLite::TotalCost()
 
             double cost = ComputeCost(tmp, sl);
             double vlr = cost + sl.data->g;
-            
+
             if (vlr < min)
             {
                 min = vlr;
@@ -116,7 +116,7 @@ double DStartLite::TotalCost()
                 newTmp = sl;
             }
         }
-       
+
         tmp = newTmp;
         sum += costMin;
     }
@@ -142,7 +142,7 @@ void DStartLite::Initialize(VertexPosition start, VertexPosition goal)
     U.Clear();
     km = 0;
     initial = true;
-   
+
     for (int i = 0; i < mapHeight; i++)
     {
         for (int j = 0; j < mapWidth; j++)
@@ -467,10 +467,22 @@ void DStartLite::PrintMap(bool withPath)
                         break;
                     }
                 }
-                if (tst)
-                    std::cout << "*";
+                
+                if (tmp == start.position)
+                {
+                    std::cout << "S";
+                }
+                else if (tmp == goal.position)
+                {
+                    std::cout << "G";
+                }
                 else
-                    std::cout << " ";
+                {
+                    if (tst)
+                        std::cout << "*";
+                    else
+                        std::cout << " ";
+                }
             }
             else
             {

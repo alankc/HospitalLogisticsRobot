@@ -40,6 +40,7 @@ public:
     static const std::string OPENNED;
     static const std::string PERFORMING;
     static const std::string DONE;
+    static const std::string FAIL;
 
 private:
     DaoGeneral* daoGenaral;

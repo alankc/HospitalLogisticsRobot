@@ -19,6 +19,7 @@ const std::string DaoTask::WAITING = "W";
 const std::string DaoTask::OPENNED = "O";
 const std::string DaoTask::PERFORMING = "P";
 const std::string DaoTask::DONE = "D";
+const std::string DaoTask::FAIL = "F";
 
 DaoTask::DaoTask(DaoGeneral* daoGeneral, uint32_t idMap) : daoGenaral(daoGeneral), idMap(idMap)
 {

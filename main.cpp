@@ -25,8 +25,6 @@
 #include <thread>
 #include <mutex>
 
-std::mutex mtx;
-
 bool notNear(player_point_2d_t current, player_point_2d_t dest, double dist = 1.00)
 {
     if (std::sqrt(std::pow(current.px - dest.px, 2) + std::pow(current.py - dest.py, 2)) > dist)
@@ -37,8 +35,7 @@ bool notNear(player_point_2d_t current, player_point_2d_t dest, double dist = 1.
 
 void VerifyAdd(DaoTask& daoTask, TaskPlanner& taskPlanner)
 {
-    static bool first = true;
-    while (true)
+    //while (true)
     {
         auto tasks = daoTask.GetPendingTasks();
         for (auto t : tasks)
@@ -51,18 +48,13 @@ void VerifyAdd(DaoTask& daoTask, TaskPlanner& taskPlanner)
             }
             taskPlanner.Add(t);
         }
-        if (first)
-        {
-            mtx.unlock();
-            first = false;
-        }
-        sleep(10);
+        //sleep(10);
     }
 }
 
 void VerifyRemove(DaoTask& daoTask, TaskPlanner& taskPlanner)
 {
-    while (true)
+    //while (true)
     {
         auto tasks = daoTask.GetRemovedTasks();
         for (auto t : tasks)
@@ -70,8 +62,23 @@ void VerifyRemove(DaoTask& daoTask, TaskPlanner& taskPlanner)
             taskPlanner.Remove(t);
             daoTask.Delete(t);
         }
-        sleep(10);
+        //sleep(10);
     }
+}
+
+void VerifyFailed(DaoTask& daoTask, TaskPlanner& taskPlanner)
+{
+    auto tasks = taskPlanner.GetFailedTasks();
+    for (auto t : tasks)
+    {
+        daoTask.UpdateStatus(t.id, DaoTask::FAIL);
+        uint32_t i = 0;
+        for (auto p : t.places)
+        {
+            daoTask.UpdateStatusPlace(t.id, i++, DaoTask::FAIL);
+        }
+    }
+    taskPlanner.ClearFailedTAsks();
 }
 
 int main(int argc, char** argv)
@@ -81,6 +88,11 @@ int main(int argc, char** argv)
 
     std::cout << "Connecting to robot" << std::endl;
     PlayerCc::PlayerClient r("localhost");
+
+    //This two lines make the player send data just when it's requested
+    r.SetDataMode(PLAYER_DATAMODE_PULL);
+    r.SetReplaceRule(true, PLAYER_MSGTYPE_DATA, -1, -1);
+
     PlayerCc::MapProxy m(&r, 0);
     PlayerCc::Position2dProxy pControl(&r, 2);
     PlayerCc::Position2dProxy pAMCL(&r, 1);
@@ -95,8 +107,8 @@ int main(int argc, char** argv)
 
     std::cout << "Map Resizing" << std::endl;
     MapResizer mR;
-    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 35, 15);
-    mR.SetBegin(-16.66, -30.52);
+    mR.Resize(aMap, m.GetWidth(), m.GetHeight(), 35, 10);
+    mR.SetBegin(-16.66, -30.51);
 
     std::cout << "Mount DStartLite" << std::endl;
     DStartLite pP;
@@ -106,17 +118,14 @@ int main(int argc, char** argv)
     TaskPlanner tP(mR.GetResizedMap(), mR.GetResizedWidth(), mR.GetResizedHeigth());
 
     player_point_2d_t point;
-
+    r.Read();
     point.px = pControl.GetXPos();
     point.py = pControl.GetYPos();
 
     tP.SetCurrentPosition(mR.RealToResized(point));
 
-    sleep(10);
-    
-    std::thread t_add(VerifyAdd, std::ref(dbT), std::ref(tP));
-    mtx.lock();
-    std::thread t_remove(VerifyRemove, std::ref(dbT), std::ref(tP));
+    //std::thread t_add(VerifyAdd, std::ref(dbT), std::ref(tP));
+    //std::thread t_remove(VerifyRemove, std::ref(dbT), std::ref(tP));
 
     VertexPosition current;
     VertexPosition next;
@@ -124,11 +133,20 @@ int main(int argc, char** argv)
     uint32_t count = 0;
     while (true)
     {
+#ifdef STATISTICS 
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+#endif
         r.Read();
         std::cout << "loop " << count++ << std::endl;
+
+        VerifyFailed(dbT, tP);
+        VerifyRemove(dbT, tP);
+        VerifyAdd(dbT, tP);
+
         Task t;
         while (tP.GetCurrentPlace(place))
         {
+            VerifyFailed(dbT, tP);
             next = place.position;
             if (tP.TaskHasChanged())
             {
@@ -185,6 +203,9 @@ int main(int argc, char** argv)
                     point.py = pControl.GetYPos();
                 }
             }
+            //std::cin.get();
+            //r.Read();
+            //std::cout << "Distance: " << std::sqrt(std::pow(mR.ResizedToReal(place.position).px - pSimulation.GetXPos(), 2) + std::pow(mR.ResizedToReal(place.position).py - pSimulation.GetYPos(), 2)) << "\n" << std::endl;
             //Fim nova versão
 
             //Versão Original
@@ -214,12 +235,15 @@ int main(int argc, char** argv)
             if (!tP.GetCurrentPlace(place))
                 dbT.UpdateStatus(t.id, DaoTask::DONE);
 
-        }
-        for (auto k : tP.GetFailedTasks())
-        {
-            std::cout << "F.ID.: " << k.id << std::endl;
+            VerifyRemove(dbT, tP);
+            VerifyAdd(dbT, tP);
         }
         sleep(1);
+#ifdef STATISTICS 
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::cout << "Time (seconds)= " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << std::endl;
+        std::cout << "Time (minutes)= " << std::chrono::duration_cast<std::chrono::minutes>(end - begin).count() << std::endl;
+#endif  
     }
     return EXIT_SUCCESS;
 }
