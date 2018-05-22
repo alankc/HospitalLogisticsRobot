@@ -56,11 +56,16 @@ void VerifyRemove(DaoTask& daoTask, TaskPlanner& taskPlanner)
 {
     //while (true)
     {
-        auto tasks = daoTask.GetRemovedTasks();
+        auto tasks = daoTask.GetTasksByStatus(DaoTask::REMOVE);
         for (auto t : tasks)
         {
-            taskPlanner.Remove(t);
-            daoTask.Delete(t);
+            taskPlanner.Remove(t.id);
+            daoTask.UpdateStatus(t.id, DaoTask::ERASED);
+            uint32_t i = 0;
+            for (auto p : t.places)
+            {
+                daoTask.UpdateStatusPlace(t.id, i++, DaoTask::ERASED);
+            }
         }
         //sleep(10);
     }
@@ -133,15 +138,13 @@ int main(int argc, char** argv)
     uint32_t count = 0;
     while (true)
     {
-#ifdef STATISTICS 
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-#endif
+        //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         r.Read();
         std::cout << "loop " << count++ << std::endl;
 
         VerifyFailed(dbT, tP);
-        VerifyRemove(dbT, tP);
         VerifyAdd(dbT, tP);
+        VerifyRemove(dbT, tP);
 
         Task t;
         while (tP.GetCurrentPlace(place))
@@ -235,15 +238,14 @@ int main(int argc, char** argv)
             if (!tP.GetCurrentPlace(place))
                 dbT.UpdateStatus(t.id, DaoTask::DONE);
 
-            VerifyRemove(dbT, tP);
             VerifyAdd(dbT, tP);
+            VerifyRemove(dbT, tP);
         }
         sleep(1);
-#ifdef STATISTICS 
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        std::cout << "Time (seconds)= " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << std::endl;
-        std::cout << "Time (minutes)= " << std::chrono::duration_cast<std::chrono::minutes>(end - begin).count() << std::endl;
-#endif  
+
+        //std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        //std::cout << "Time (seconds)= " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << std::endl;
+        //std::cout << "Time (minutes)= " << std::chrono::duration_cast<std::chrono::minutes>(end - begin).count() << std::endl;
     }
     return EXIT_SUCCESS;
 }

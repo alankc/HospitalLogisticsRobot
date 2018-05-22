@@ -15,6 +15,7 @@
 #include <sstream>
 
 const std::string DaoTask::REMOVE = "R";
+const std::string DaoTask::ERASED = "E";
 const std::string DaoTask::WAITING = "W";
 const std::string DaoTask::OPENNED = "O";
 const std::string DaoTask::PERFORMING = "P";

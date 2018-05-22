@@ -48,7 +48,8 @@ public:
     void MountTheMap(int8_t* map, uint32_t mapWidth, uint32_t mapHeight, double diagonalCost = 1.41, double nonDiagonalCost = 1.0, int pixPerMeter = 1, int newPixPerMeter = 1);
     void Initialize(VertexPosition start, VertexPosition goal);
     bool GetNext(VertexPosition& nextPosition, std::vector<VertexUpdate> outdatedVertices);
-
+    bool GetNextWayPoint(VertexPosition& nextPosition, std::vector<VertexUpdate> outdatedVertices);
+    
     void PrintMap(bool withPath);
 
     double TotalCost();

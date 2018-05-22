@@ -240,7 +240,7 @@ void TaskPlanner::SortTasks()
 void TaskPlanner::ComputeTotalCost(TaskData& t, VertexPosition initialPosition)
 {
     //When I have to compute all
-    if (t.costs.size() == 0)
+    if ((t.distances.size() == 0) && (t.places.size() > 1))
     {
         std::thread th[t.places.size()];
         double distances[t.places.size()];
@@ -252,23 +252,23 @@ void TaskPlanner::ComputeTotalCost(TaskData& t, VertexPosition initialPosition)
             last = t.places[i].position;
         }
 
-        t.costs.clear();
+        t.distances.clear();
         for (int i = 0; i < t.places.size(); i++)
         {
             th[i].join();
-            t.costs.push_back(distances[i]);
+            t.distances.push_back(distances[i]);
         }
     }
     else //When i have to update just the first step
     {
-        while (t.costs.size() > t.places.size()) //When the position was reached
-            t.costs.erase(t.costs.begin());
-        ComputeDistance(map, mapWidth, mapHeight, initialPosition, t.places[0].position, std::ref(t.costs[0]));
+        while (t.distances.size() > t.places.size()) //When the position was reached
+            t.distances.erase(t.distances.begin());
+        ComputeDistance(map, mapWidth, mapHeight, initialPosition, t.places[0].position, std::ref(t.distances[0]));
     }
 
     t.cost = 0;
-    for (int i = 0; i < t.costs.size(); i++)
-        t.cost += t.costs[i] / (double) t.priority;
+    for (int i = 0; i < t.distances.size(); i++)
+        t.cost += t.distances[i] / (double) t.priority;
 }
 
 void TaskPlanner::ComputeDistance(int8_t* map, uint32_t mapWidth, uint32_t mapHeight, VertexPosition start, VertexPosition goal, double& cost)

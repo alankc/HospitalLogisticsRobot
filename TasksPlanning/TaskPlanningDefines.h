@@ -32,7 +32,7 @@ struct Task
 struct TaskData
 {
     std::vector<TaskPlace> places;
-    std::vector<double> costs;
+    std::vector<double> distances;
 
     int priority;
     double cost;

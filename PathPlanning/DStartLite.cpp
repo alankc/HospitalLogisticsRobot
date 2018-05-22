@@ -309,6 +309,99 @@ bool DStartLite::GetNext(VertexPosition& nextPosition, std::vector<VertexUpdate>
 
     return true;
 }
+
+bool DStartLite::GetNextWayPoint(VertexPosition& nextPosition, std::vector<VertexUpdate> outdatedVertices)
+{
+    if (initial)
+    {
+        initial = false;
+        last = start;
+        ComputeShortestPath();
+        //PrintMap(true);
+    }
+
+    if ((start == goal) || (start.data->g == INFINITY_CONST))
+        return false;
+
+    double min = INFINITY_CONST;
+    int currVerticalState, currHorizontalState, nextVerticalState, nextHorizontalState;
+    
+    auto succ = Succ(start);
+    Vertex newStart;
+    for (auto i : succ)
+    {
+        Vertex sl;
+        sl.position = i;
+        sl.data = &map[i];
+
+        double vlr = ComputeCost(start, sl) + sl.data->g;
+        if (vlr < min)
+        {
+            min = vlr;
+            newStart = sl;
+        }
+    }
+    
+    currVerticalState = nextVerticalState = (newStart.position.y - start.position.y) / std::abs(newStart.position.y - start.position.y);
+    currHorizontalState = nextHorizontalState = (newStart.position.x - start.position.x) / std::abs(newStart.position.x - start.position.x);
+    
+    while ((currVerticalState == nextVerticalState) && (currHorizontalState == nextHorizontalState))
+    {
+        auto succ = Succ(newStart);
+        for (auto i : succ)
+        {
+            Vertex sl;
+            sl.position = i;
+            sl.data = &map[i];
+
+            double vlr = ComputeCost(start, sl) + sl.data->g;
+            if (vlr < min)
+            {
+                min = vlr;
+                newStart = sl;
+            }
+        }
+    }
+
+    start = newStart;
+    nextPosition = start.position;
+
+    if (!outdatedVertices.empty())
+    {
+        km = km + ComputeH(last, start);
+        last = start;
+
+        //Vertex v
+        for (auto i : outdatedVertices)
+        {
+            CellMap::iterator it = map.find(i.position);
+            if (it != map.end())
+                it->second.free = i.free;
+        }
+
+        //Vertex u
+        for (auto i : outdatedVertices)
+        {
+            CellMap::iterator it = map.find(i.position);
+            if (it != map.end())
+            {
+                Vertex v;
+                v.position = i.position;
+                auto pred = Pred(v);
+                for (auto j : pred)
+                {
+                    Vertex u;
+                    u.position = j;
+                    u.data = &map[j];
+                    UpdateVertex(u);
+                }
+            }
+        }
+        ComputeShortestPath();
+    }
+
+    return true;
+}
 /**************************/
 
 /*DStart auxiliary methods*/

@@ -36,6 +36,7 @@ public:
     virtual ~DaoTask();
 
     static const std::string REMOVE;
+    static const std::string ERASED;
     static const std::string WAITING;
     static const std::string OPENNED;
     static const std::string PERFORMING;
