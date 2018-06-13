@@ -321,11 +321,21 @@ bool DStartLite::GetNextWayPoint(VertexPosition& nextPosition, std::vector<Verte
     }
 
     if ((start == goal) || (start.data->g == INFINITY_CONST))
+    {
+        if (start.data->g == INFINITY_CONST)
+        {
+            std::cout << "Falha ao computar rota!,  Celula livre = " << map[start.position].free << std::endl;        
+        }
+        else
+        {
+            std::cout << "START = GOAL" << std::endl;
+        }
         return false;
+    }
 
     double min = INFINITY_CONST;
     int currVerticalState, currHorizontalState, nextVerticalState, nextHorizontalState;
-    
+
     auto succ = Succ(start);
     Vertex newStart;
     for (auto i : succ)
@@ -341,29 +351,50 @@ bool DStartLite::GetNextWayPoint(VertexPosition& nextPosition, std::vector<Verte
             newStart = sl;
         }
     }
-    
-    currVerticalState = nextVerticalState = (newStart.position.y - start.position.y) / std::abs(newStart.position.y - start.position.y);
-    currHorizontalState = nextHorizontalState = (newStart.position.x - start.position.x) / std::abs(newStart.position.x - start.position.x);
-    
+
+    currVerticalState = nextVerticalState = (newStart.position.y - start.position.y);
+    if (currVerticalState != 0)
+        currVerticalState = nextVerticalState = currVerticalState / std::abs(currVerticalState);
+
+    currHorizontalState = nextHorizontalState = (newStart.position.x - start.position.x) /*/ std::abs(newStart.position.x - start.position.x)*/;
+    if (currHorizontalState != 0)
+        currHorizontalState = nextHorizontalState = currHorizontalState / std::abs(currHorizontalState);
+
+    Vertex currStart;
     while ((currVerticalState == nextVerticalState) && (currHorizontalState == nextHorizontalState))
     {
-        auto succ = Succ(newStart);
+        currStart = newStart;
+        auto succ = Succ(currStart);
         for (auto i : succ)
         {
             Vertex sl;
             sl.position = i;
             sl.data = &map[i];
 
-            double vlr = ComputeCost(start, sl) + sl.data->g;
+            double vlr = ComputeCost(currStart, sl) + sl.data->g;
             if (vlr < min)
             {
                 min = vlr;
                 newStart = sl;
             }
         }
+
+        if (newStart == goal)
+        {
+            currStart = newStart;
+            break;
+        }
+
+        nextVerticalState = (newStart.position.y - currStart.position.y);
+        if (nextVerticalState != 0)
+            nextVerticalState = nextVerticalState / std::abs(nextVerticalState);
+
+        nextHorizontalState = (newStart.position.x - currStart.position.x);
+        if (nextHorizontalState != 0)
+            nextHorizontalState = nextHorizontalState / std::abs(nextHorizontalState);
     }
 
-    start = newStart;
+    start = currStart;
     nextPosition = start.position;
 
     if (!outdatedVertices.empty())
@@ -560,7 +591,7 @@ void DStartLite::PrintMap(bool withPath)
                         break;
                     }
                 }
-                
+
                 if (tmp == start.position)
                 {
                     std::cout << "S";

@@ -24,6 +24,7 @@
 
 #include <thread>
 #include <mutex>
+#include <limits>
 
 bool notNear(player_point_2d_t current, player_point_2d_t dest, double dist = 1.00)
 {
@@ -101,8 +102,10 @@ int main(int argc, char** argv)
     PlayerCc::MapProxy m(&r, 0);
     PlayerCc::Position2dProxy pControl(&r, 2);
     PlayerCc::Position2dProxy pAMCL(&r, 1);
-    PlayerCc::Position2dProxy pSimulation(&r, 0);
-
+    PlayerCc::Position2dProxy pRobot(&r, 0);
+    
+    pRobot.SetMotorEnable(true);
+    
     r.Read();
 
     std::cout << "Reading Map" << std::endl;
@@ -184,13 +187,13 @@ int main(int argc, char** argv)
             tmpCurr.x = tmpCurr.y = 0;
             tmpPrev = tmpCurr;
             std::vector<VertexUpdate> up;
-            while (pP.GetNext(tmpCurr, up))
+            while (pP.GetNextWayPoint(tmpCurr, up))
             {
                 player_point_2d_t pointTmpCurr, pointTmpPrev;
                 pointTmpCurr = mR.ResizedToReal(tmpCurr);
                 pointTmpPrev = mR.ResizedToReal(tmpPrev);
 
-                if (!notNear(pointTmpCurr, pointTmpPrev, 0.25)) continue;
+               // if (!notNear(pointTmpCurr, pointTmpPrev, 0.25)) continue;
 
                 tmpPrev = tmpCurr;
 
@@ -199,11 +202,13 @@ int main(int argc, char** argv)
                 r.Read();
                 point.px = pControl.GetXPos();
                 point.py = pControl.GetYPos();
+                std::cout << pointTmpCurr << std::endl;
                 while (notNear(point, pointTmpCurr))
                 {
                     r.Read();
                     point.px = pControl.GetXPos();
                     point.py = pControl.GetYPos();
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 }
             }
             //std::cin.get();
@@ -240,6 +245,9 @@ int main(int argc, char** argv)
 
             VerifyAdd(dbT, tP);
             VerifyRemove(dbT, tP);
+            
+            std::cout << "Press enter to continue!" << std::flush;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
         }
         sleep(1);
 
